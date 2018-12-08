@@ -1,26 +1,38 @@
 #!groovy​
 
-properties([[$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', numToKeepStr: '10']]])
-
-stage('build') {
-    node {
-        checkout scm
-        def v = version()
-        currentBuild.displayName = "${env.BRANCH_NAME}-${v}-${env.BUILD_NUMBER}"
-        mvn "clean verify"
+pipeline {
+    agent any 
+    stages {
+        stage('Build') {
+            steps {
+                echo 'Hello, Maven'
+                bat 'dir'
+                bat 'mvn --version'
+            }
+        }
+        stage('Test') {
+            steps {
+                echo 'Hello, JDK'
+                bat 'java -version'
+            }
+        }
+        stage('Deploy') {
+            options {
+        timeout(time: 30, unit: 'SECONDS') 
+            }
+        input {
+        message "Which Version?"
+        ok "Deploy"
+        parameters {
+            choice(name: 'APP_VERSION', choices: "v1.1\nv1.2\nv1.3", description: 'What to deploy?')
+        }
+      }
+      
+      steps {
+                echo "Continuing with deployment"
+                echo 'Hello, GIT'
+                bat 'git version'
+            }
+        }
     }
-}
-
-def mvn(String goals) {
-    def mvnHome = tool "Maven-3.6.0"
-    def javaHome = tool "JDK11.0.1"
-
-    withEnv(["JAVA_HOME=${javaHome}", "PATH+MAVEN=${mvnHome}/bin"]) {
-        sh "mvn -B ${goals}"
-    }
-}
-
-def version() {
-    def matcher = readFile('pom.xml') =~ '<version>(.+)</version>'
-    return matcher ? matcher[0][1] : null
 }
